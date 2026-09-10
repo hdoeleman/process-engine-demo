@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Order Fulfillment Demo — BNP Paribas</title>
+<link rel="icon" href="bnp-paribas-fortis-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="warningBanner" class="warning-banner hidden" role="alert">
+    <span id="warningBannerText"></span>
+    <button type="button" id="warningBannerClose" class="warning-banner-close" aria-label="Dismiss">&times;</button>
+</div>
+<div class="page-header">
+<div class="brand-bar"></div>
+<header>
+    <div class="header-top">
+        <div class="brand">
+            <img class="brand-mark" src="bnp-paribas-fortis-logo.png" alt="BNP Paribas Fortis">
+            <span class="brand-divider" aria-hidden="true"></span>
+            <h1>Order Fulfillment Demo</h1>
+        </div>
+    </div>
+    <p class="subtitle">A small business-user view for completing manual tasks -- across any deployed process, not just the bundled order-fulfillment sample -- and for starting new orders.</p>
+    <nav class="header-nav">
+        <a href="admin.html">Admin Console</a>
+        <a href="editor.html">Diagram Editor</a>
+    </nav>
+</header>
+</div>
+
+<main>
+    <section class="panel" id="panel-tasks">
+        <h2>Tasks</h2>
+        <p class="hint">Manual steps waiting on a business-user decision, across every deployed process — a task appears here the moment its order reaches it (this list refreshes itself automatically), and disappears once completed.</p>
+        <table id="tasksTable" class="data-table">
+            <thead><tr><th>Process key</th><th>Order</th><th>Task</th><th>Activated</th><th></th></tr></thead>
+            <tbody></tbody>
+        </table>
+    </section>
+
+    <section class="panel" id="panel-start">
+        <h2>Start an order</h2>
+        <p class="hint">Starts a new run of whichever deployed process version you select below.</p>
+
+        <h3>Version</h3>
+        <p class="hint">Click a row to choose which process and deployed version the new order starts against.</p>
+        <table id="versionsTable" class="data-table">
+            <thead><tr><th></th><th>Process key</th><th>Version</th><th>Name</th><th>Steps</th><th>Deployed at</th></tr></thead>
+            <tbody></tbody>
+        </table>
+
+        <div class="row actions">
+            <button id="btnNewOrder">New order</button>
+        </div>
+
+        <div id="newOrderForm" class="hidden">
+            <div class="start-group">
+                <div class="row actions">
+                    <button id="btnStart">Start order</button>
+                </div>
+                <details>
+                    <summary class="pill-toggle">Variables</summary>
+                    <p class="hint">One field per variable this version declares (see each field's own hint for what it does) — built from the process definition itself, not hardcoded into this page.</p>
+                    <div id="variableForm"></div>
+                </details>
+            </div>
+        </div>
+    </section>
+
+    <section class="panel" id="panel-orders">
+        <h2>Orders</h2>
+        <p class="hint">Every instance of every deployed process, running or completed. Refreshes automatically.</p>
+        <table id="ordersTable" class="data-table">
+            <thead><tr><th>Id</th><th>Process key</th><th>Version</th><th>Status</th><th>Updated</th></tr></thead>
+            <tbody></tbody>
+        </table>
+    </section>
+
+    <section class="panel" id="panel-version">
+        <h2>Demo setup</h2>
+        <p class="hint">Not a business-user action — a setup/reset utility. v1 (the bundled default) deploys automatically on first boot; loading a version only affects orders started <em>after</em> loading it, orders already running stay pinned to whichever version they started with. Also how to put a definition back in place after "Clear all data" (admin console) wipes it, without restarting the app.</p>
+        <div class="row">
+            <button id="btnDeployV1">Load v1</button>
+            <button id="btnDeployV2">Load v2 — adds a confirmation email step</button>
+        </div>
+        <p class="hint" id="deployVersionError"></p>
+    </section>
+</main>
+
+<div id="toastStack" class="toast-stack"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

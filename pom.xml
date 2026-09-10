@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <!-- Parented directly by Spring Boot, NOT by the process-engine reactor: this project is a
+         standalone consumer of the library, not a member of its build. The only coupling to
+         process-engine-core/process-engine-admin is the ordinary dependency below — no shared
+         parent, no reactor aggregation, no build-order coupling. Run `mvn install` in the
+         process-engine reactor first (or after any change there) so those artifacts are present
+         in the local Maven repository for this project to resolve. -->
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>3.3.4</version>
+    <relativePath/>
+  </parent>
+
+  <groupId>com.example</groupId>
+  <artifactId>process-engine-demo</artifactId>
+  <version>0.1.0</version>
+  <name>process-engine-demo</name>
+  <description>Standalone sample app: the order-fulfillment process, its StepHandler implementations, a small demo web UI, and the whole engine test suite. Depends on process-engine-core and process-engine-admin as ordinary Maven artifacts, independent of their build.</description>
+
+  <properties>
+    <java.version>21</java.version>
+    <jacoco.version>0.8.13</jacoco.version>
+    <pitest-maven.version>1.19.1</pitest-maven.version>
+    <pitest-junit5-plugin.version>1.2.2</pitest-junit5-plugin.version>
+    <sonar-maven-plugin.version>5.1.0.4751</sonar-maven-plugin.version>
+    <sonar.projectKey>com.example:process-engine-demo</sonar.projectKey>
+    <sonar.coverage.jacoco.xmlReportPaths>${project.build.directory}/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+    <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
+    <checkstyle.version>10.20.1</checkstyle.version>
+    <spotless-maven-plugin.version>2.44.0</spotless-maven-plugin.version>
+    <palantir-java-format.version>2.65.0</palantir-java-format.version>
+    <archunit.version>1.4.0</archunit.version>
+    <dependency-check-maven.version>12.2.2</dependency-check-maven.version>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.example</groupId>
+      <artifactId>process-engine-core</artifactId>
+      <version>0.1.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.example</groupId>
+      <artifactId>process-engine-admin</artifactId>
+      <version>0.1.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.awaitility</groupId>
+      <artifactId>awaitility</artifactId>
+      <version>4.2.2</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.tngtech.archunit</groupId>
+      <artifactId>archunit-junit5</artifactId>
+      <version>${archunit.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+
+      <!-- Same coverage/mutation/sonar setup as process-engine's reactor pom — duplicated,
+                 not inherited, since this project deliberately has no parent/module relationship
+                 to that reactor. See process-engine/pom.xml for the rationale behind each plugin's
+                 lifecycle binding (or lack of one). -->
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>${jacoco.version}</version>
+        <executions>
+          <execution>
+            <id>prepare-agent</id>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>report</id>
+            <goals>
+              <goal>report</goal>
+            </goals>
+            <phase>test</phase>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.pitest</groupId>
+        <artifactId>pitest-maven</artifactId>
+        <version>${pitest-maven.version}</version>
+        <configuration>
+          <targetClasses>
+            <param>com.example.processengine.*</param>
+          </targetClasses>
+          <targetTests>
+            <param>com.example.processengine.*</param>
+          </targetTests>
+          <excludedClasses>
+            <param>com.example.processengine.ProcessEngineApplication</param>
+          </excludedClasses>
+          <mutationThreshold>0</mutationThreshold>
+          <outputFormats>
+            <outputFormat>HTML</outputFormat>
+            <outputFormat>XML</outputFormat>
+          </outputFormats>
+          <timestampedReports>false</timestampedReports>
+        </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>org.pitest</groupId>
+            <artifactId>pitest-junit5-plugin</artifactId>
+            <version>${pitest-junit5-plugin.version}</version>
+          </dependency>
+        </dependencies>
+      </plugin>
+
+      <plugin>
+        <groupId>org.sonarsource.scanner.maven</groupId>
+        <artifactId>sonar-maven-plugin</artifactId>
+        <version>${sonar-maven-plugin.version}</version>
+      </plugin>
+
+      <!-- Style/lint gate, bound to validate so it fails fast, before compilation. Own copy
+                 of checkstyle.xml/checkstyle-suppressions.xml (not shared with process-engine),
+                 matching the "duplicated, not inherited" rationale above. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <version>${maven-checkstyle-plugin.version}</version>
+        <configuration>
+          <configLocation>checkstyle.xml</configLocation>
+          <consoleOutput>true</consoleOutput>
+          <failsOnError>true</failsOnError>
+          <includeTestSourceDirectory>true</includeTestSourceDirectory>
+          <propertyExpansion>config_loc=${project.basedir}</propertyExpansion>
+        </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>com.puppycrawl.tools</groupId>
+            <artifactId>checkstyle</artifactId>
+            <version>${checkstyle.version}</version>
+          </dependency>
+        </dependencies>
+        <executions>
+          <execution>
+            <id>validate</id>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <phase>validate</phase>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Formatting gate: `check` (bound to verify) fails the build on anything not
+                 already Palantir-formatted; `spotless:apply` rewrites files in place, run
+                 explicitly after a change that produces non-conforming formatting. `apply` isn't
+                 bound to any phase itself, matching how the rest of this pom treats
+                 non-idempotent/rewriting goals as opt-in. -->
+      <plugin>
+        <groupId>com.diffplug.spotless</groupId>
+        <artifactId>spotless-maven-plugin</artifactId>
+        <version>${spotless-maven-plugin.version}</version>
+        <configuration>
+          <java>
+            <palantirJavaFormat>
+              <version>${palantir-java-format.version}</version>
+            </palantirJavaFormat>
+            <removeUnusedImports/>
+            <trimTrailingWhitespace/>
+            <endWithNewline/>
+          </java>
+          <pom>
+            <sortPom>
+              <expandEmptyElements>false</expandEmptyElements>
+            </sortPom>
+          </pom>
+        </configuration>
+        <executions>
+          <execution>
+            <id>spotless-check</id>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <phase>verify</phase>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <!-- OWASP Dependency-Check (NVD lookup). Kept in a profile, not default verify: it needs
+             network access to the NIST API and adds significant time to the build. Invoke
+             explicitly: `mvn -Psecurity org.owasp:dependency-check-maven:check`. -->
+    <profile>
+      <id>security</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.owasp</groupId>
+            <artifactId>dependency-check-maven</artifactId>
+            <version>${dependency-check-maven.version}</version>
+            <configuration>
+              <!-- High and Critical fail the build; Medium and Low surface as warnings only. -->
+              <failBuildOnCVSS>7</failBuildOnCVSS>
+              <!-- NVD_API_KEY env var if present; without it the scan is much slower. -->
+              <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
+              <!-- Test-only and provided-scope deps don't ship to production. -->
+              <skipTestScope>true</skipTestScope>
+              <skipProvidedScope>true</skipProvidedScope>
+              <!-- OSS Index requires auth (401 without credentials); NVD alone is sufficient. -->
+              <ossindexAnalyzerEnabled>false</ossindexAnalyzerEnabled>
+              <formats>
+                <format>HTML</format>
+                <format>SARIF</format>
+              </formats>
+            </configuration>
+            <executions>
+              <execution>
+                <id>owasp-dependency-check</id>
+                <goals>
+                  <goal>check</goal>
+                </goals>
+                <phase>verify</phase>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+</project>
