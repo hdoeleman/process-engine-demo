@@ -1,0 +1,47 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:process-engine-test;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+  # Same schema-management path as production (see application.yml) -- tests run against a
+  # Liquibase-created schema too, not a Hibernate-generated one, so a validate mismatch would
+  # fail here first.
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+process-engine:
+  demo:
+    load-sample-definition: false
+    simulated-latency-min-millis: 0
+    simulated-latency-max-millis: 0
+  recovery:
+    enabled: false
+    periodic-scan-enabled: false
+  # Left enabled, unlike recovery/sla above -- VersioningTest starts a real instance of v2 (whose
+  # sendConfirmationEmail step is a SUB_PROCESS, see DemoProcessDefinitions) and awaits it reaching
+  # COMPLETED through the real Spring context, which needs this scanner actually running to
+  # reconcile the child instance back onto that step. 150ms matches this project's own established
+  # test-speed convention for a periodic scan that a real integration test has to wait out.
+  subprocess:
+    scan-enabled: true
+    scan-interval-millis: 150
+  # Same reasoning as subprocess above -- a real integration test starts a send-pdf instance and
+  # awaits its bundled waitForSignature TIMER_WAIT step actually resuming through the real Spring
+  # context, which needs this scanner running at a fast, test-speed interval.
+  timer-wait:
+    scan-enabled: true
+    scan-interval-millis: 150
+  retry:
+    # Default (10s) is sized for production, where a genuinely wedged handler thread should get a
+    # real grace period before being force-interrupted. Tests always release promptly, so the only
+    # time this is actually waited out in full is Spring context teardown finding a handler thread
+    # still occupied (e.g. AmbiguousStepResolutionTest's HangingHandler fixture) -- which used to
+    # cost the whole suite a real 10s for no benefit. 1s is still generous next to how fast test
+    # handlers actually finish.
+    shutdown-timeout-seconds: 1

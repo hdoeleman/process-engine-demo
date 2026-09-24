@@ -1,0 +1,87 @@
+spring:
+  datasource:
+    url: jdbc:h2:file:./data/process-engine;AUTO_SERVER=TRUE
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+  # Liquibase (shipped by process-engine-core, see its db/changelog/) owns every table the
+  # engine's entities map to and runs on startup, before Hibernate touches the schema at all.
+  # ddl-auto is validate, not update/create -- Hibernate only checks its entity mappings still
+  # match what Liquibase created; it never generates DDL of its own.
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  # No Cache-Control header at all (Spring Boot's static-resource default) leaves browsers free to
+  # apply their own heuristic freshness to admin.js/admin.html/editor.js/etc., which can and does
+  # mean a redeployed static file silently keeps serving the old one for an unpredictable stretch
+  # -- no-cache (not no-store) still lets the browser cache the bytes, it just forces a conditional
+  # revalidation (If-Modified-Since, cheap 304 when genuinely unchanged) before ever using them.
+  web:
+    resources:
+      cache:
+        cachecontrol:
+          no-cache: true
+
+server:
+  port: 8080
+
+# Health only, and no component detail in the response body -- both are Spring Boot's own defaults
+# already, made explicit here rather than inherited so a future dependency bump or a well-meaning
+# "let's see more" change doesn't silently widen what an unauthenticated caller can see. There's no
+# auth layer yet (see docs/adr and the project's production-readiness review), so this stays the
+# minimum an orchestrator needs (a liveness/readiness signal, including DB connectivity via the
+# auto-detected DataSource health indicator) until one exists to safely expose more.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+process-engine:
+  demo:
+    load-sample-definition: true
+    # Every bundled handler pauses a random duration in this range before doing its work, so a
+    # demo run feels real instead of completing instantly -- see SimulatedLatency. Zeroed out in
+    # application-test.yml so the test suite doesn't pay it on every handler invocation.
+    simulated-latency-min-millis: 5000
+    simulated-latency-max-millis: 8000
+  retry:
+    core-pool-size: 4
+  recovery:
+    enabled: true
+    periodic-scan-enabled: true
+  sla:
+    scan-enabled: true
+  subprocess:
+    scan-enabled: true
+  timer-wait:
+    scan-enabled: true
+    # Faster than the 30s core default -- send-pdf's bundled waitForSignature step uses a short
+    # demo duration (see SendPdfProcessDefinitions), and a live manual test should see it resume
+    # promptly rather than waiting up to 30s past the configured duration.
+    scan-interval-millis: 2000
+
+logging:
+  level:
+    com.example.processengine: INFO
+  # Injects the "instanceId" MDC key (set by ServiceTaskDispatcher/PeriodicInstanceScanner around
+  # any work scoped to one process instance) next to the log level, e.g. "INFO [instanceId=<uuid>]"
+  # -- without this, MDC values are set but never rendered anywhere, since Spring Boot's default
+  # console pattern doesn't include %X{...} on its own. Empty (not the literal string "null") when
+  # nothing has set the key, e.g. inside code that isn't scoped to any one instance.
+  pattern:
+    level: "%5p [instanceId=%X{instanceId:-}]"
