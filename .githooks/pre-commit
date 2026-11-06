@@ -1,0 +1,36 @@
+#!/bin/sh
+# Pre-commit hook: format staged Java files with Spotless (Palantir Java Format) so the
+# `spotless:check` gate in `mvn verify` never fails on formatting alone.
+#
+# Install once per clone:   git config core.hooksPath .githooks
+# Bypass for a WIP commit:  git commit --no-verify   (CI / mvn verify still catches it)
+
+root=$(git rev-parse --show-toplevel) || exit 1
+cd "$root" || exit 1
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR -- '*.java')
+[ -z "$staged" ] && exit 0
+
+# Spotless takes comma-separated regexes matched against each file's absolute path. A path
+# separator becomes "." (matches / and \), so the same regex works on Windows and Unix.
+regex=$(printf '%s\n' "$staged" | sed 's/[.]/\\./g; s#/#.#g; s#^#.*.#' | paste -sd, -)
+
+# Taken before Spotless runs, so its own rewrites do not count as "unstaged edits".
+unstaged=$(git diff --name-only -- '*.java')
+
+echo "pre-commit: spotless:apply on $(printf '%s\n' "$staged" | wc -l | tr -d ' ') staged Java file(s)"
+./mvnw -q -B spotless:apply "-DspotlessFiles=$regex" || {
+    echo "pre-commit: spotless:apply failed; commit aborted (use --no-verify to bypass)" >&2
+    exit 1
+}
+
+# Re-stage what Spotless rewrote. A file that also has unstaged edits is left alone, so the
+# hook never silently stages work the author chose not to commit.
+for f in $staged; do
+    if printf '%s\n' "$unstaged" | grep -qxF "$f"; then
+        echo "pre-commit: $f has unstaged changes; formatting not re-staged (run: git add -p $f)" >&2
+    else
+        git add -- "$f"
+    fi
+done
+exit 0

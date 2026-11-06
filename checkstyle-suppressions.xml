@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<!DOCTYPE suppressions PUBLIC
+    "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN"
+    "https://checkstyle.org/dtds/suppressions_1_2.dtd">
+
+<suppressions>
+    <!-- Tests (and shared test fixtures, which don't match *Test.java themselves) routinely use
+         literal numbers as expected/actual values and timing constants. -->
+    <suppress files="Test\.java$|Fixture\.java$|TestSupport\.java$" checks="MagicNumber"/>
+
+    <!-- Test fixtures deliberately expose package-private fields for direct access from tests in
+         the same package — that's the fixture's whole purpose, not something needing an
+         accessor method wrapped around it. -->
+    <suppress files="Fixture\.java$|TestSupport\.java$" checks="VisibilityModifier"/>
+
+    <!-- Spring Data JPA's derived-query method names use underscores to disambiguate a nested
+         property path (e.g. findByProcessInstance_IdAndStatus means the "id" property of the
+         "processInstance" association) — a well-established framework convention, not a naming
+         violation. -->
+    <suppress files="Repository\.java$" checks="MethodName"/>
+
+    <!-- ArchUnit convention: rules are snake_case static fields on a no-instance test class. -->
+    <suppress files="ArchitectureTest\.java$" checks="ConstantName|HideUtilityClassConstructor"/>
+
+    <!-- False positive: a class whose only member is `public static void main` reads to this
+         check as an all-static "utility class" that should hide its constructor, but a Spring
+         Boot application entry point needs its normal implicit public constructor. -->
+    <suppress files="ProcessEngineApplication\.java$" checks="HideUtilityClassConstructor"/>
+</suppressions>
