@@ -1,0 +1,28 @@
+/* The Human Tasks page's own styles, on top of the console's style.css.
+
+   The live advisory banner (see DemoAdvisoryListener): deliberately impossible to miss, unlike the transient .toast
+   messages, since it reports one of the engine's own "this needs a person" situations (SLA breach, unknown outcome,
+   compensation failure), not a routine action result. It stays up until dismissed, not on a timer. */
+.warning-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    background: var(--danger);
+    color: #fff;
+    padding: 14px 24px;
+    font-weight: 600;
+}
+/* .hidden and .warning-banner have the same specificity, and this file loads after style.css, so .warning-banner's
+   display would win on source order and leave a hidden banner visible. */
+.warning-banner.hidden { display: none; }
+.warning-banner-close {
+    flex-shrink: 0;
+    background: transparent;
+    color: #fff;
+    box-shadow: none;
+    font-size: 22px;
+    line-height: 1;
+    padding: 0 6px;
+}
+.warning-banner-close:hover { background: rgba(255, 255, 255, 0.2); }

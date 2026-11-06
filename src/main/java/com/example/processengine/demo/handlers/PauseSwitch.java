@@ -1,0 +1,24 @@
+package com.example.processengine.demo.handlers;
+
+import com.example.processengine.engine.StepExecutionContext;
+
+/** Shared "make it slow" convention for every bundled demo handler: set a boolean start variable
+ *  named "&lt;stepKey&gt;Slow" (e.g. "chargePaymentSlow") to make that step pause for {@link
+ *  #PAUSE_MILLIS} before doing its normal work -- long enough to trip a deliberately short
+ *  per-step timeout (set via the admin console's step-config editor) without waiting anywhere
+ *  near the much larger engine-wide default. A call that times out may have taken effect, so an
+ *  idempotent step is retried (see RetryBackoff) and any other step becomes OUTCOME_UNKNOWN for an
+ *  operator to resolve (ADR-030 in the engine). Mirrors {@link FailSwitch}'s convention. */
+final class PauseSwitch {
+
+    static final long PAUSE_MILLIS = 11_000;
+
+    private PauseSwitch() {}
+
+    static void pauseIfRequested(StepExecutionContext ctx) throws InterruptedException {
+        var variable = ctx.getStepKey() + "Slow";
+        if (Boolean.TRUE.equals(ctx.getVariable(variable))) {
+            Thread.sleep(PAUSE_MILLIS);
+        }
+    }
+}
